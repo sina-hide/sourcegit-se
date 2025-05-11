@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 using Avalonia;
@@ -151,12 +152,22 @@ namespace SourceGit.Views
                     return;
                 }
 
+                var rules = IssueTrackerRules ?? [];
+                foreach (var rule in rules)
+                    rule.Matches(_elements, subject);
+
                 var keywordMatch = REG_KEYWORD_FORMAT1().Match(subject);
                 if (!keywordMatch.Success)
                     keywordMatch = REG_KEYWORD_FORMAT2().Match(subject);
 
                 if (keywordMatch.Success)
-                    _elements.Add(new Models.InlineElement(Models.InlineElementType.Keyword, 0, keywordMatch.Length, string.Empty));
+                {
+                    var start = 0;
+                    var len = keywordMatch.Length;
+                    var intersect = _elements.Any(exist => exist.Intersect(start, len));
+                    if (!intersect)
+                        _elements.Add(new Models.InlineElement(Models.InlineElementType.Keyword, start, len, string.Empty));
+                }
 
                 var codeMatches = REG_INLINECODE_FORMAT().Matches(subject);
                 for (var i = 0; i < codeMatches.Count; i++)
@@ -182,10 +193,6 @@ namespace SourceGit.Views
 
                     _elements.Add(new Models.InlineElement(Models.InlineElementType.Code, start, len, string.Empty));
                 }
-
-                var rules = IssueTrackerRules ?? [];
-                foreach (var rule in rules)
-                    rule.Matches(_elements, subject);
 
                 _elements.Sort((l, r) => l.Start - r.Start);
                 _needRebuildInlines = true;
