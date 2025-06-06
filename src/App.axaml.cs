@@ -107,13 +107,24 @@ namespace SourceGit
         #region Utility Functions
         public static void ShowWindow(object data, bool showAsDialog)
         {
+            var impl = (Views.ChromelessWindow target, bool isDialog) =>
+            {
+                if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+                {
+                    if (isDialog)
+                        target.ShowDialog(owner);
+                    else
+                        target.Show(owner);
+                }
+                else
+                {
+                    target.Show();
+                }
+            };
+
             if (data is Views.ChromelessWindow window)
             {
-                if (showAsDialog && Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
-                    window.ShowDialog(owner);
-                else
-                    window.Show();
-
+                impl(window, showAsDialog);
                 return;
             }
 
@@ -130,10 +141,7 @@ namespace SourceGit
             if (window != null)
             {
                 window.DataContext = data;
-                if (showAsDialog && Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
-                    window.ShowDialog(owner);
-                else
-                    window.Show();
+                impl(window, showAsDialog);
             }
         }
 
@@ -385,7 +393,17 @@ namespace SourceGit
                 _ipcChannel = new Models.IpcChannel();
                 if (!_ipcChannel.IsFirstInstance)
                 {
-                    _ipcChannel.SendToFirstInstance(desktop.Args is { Length: 1 } ? desktop.Args[0] : string.Empty);
+                    var arg = desktop.Args is { Length: > 0 } ? desktop.Args[0].Trim() : string.Empty;
+                    if (!string.IsNullOrEmpty(arg))
+                    {
+                        if (arg.StartsWith('"') && arg.EndsWith('"'))
+                            arg = arg.Substring(1, arg.Length - 2).Trim();
+
+                        if (arg.Length > 0 && !Path.IsPathFullyQualified(arg))
+                            arg = Path.GetFullPath(arg);
+                    }
+
+                    _ipcChannel.SendToFirstInstance(arg);
                     Environment.Exit(0);
                 }
                 else
@@ -540,7 +558,7 @@ namespace SourceGit
 
         private void TryLaunchAsNormal(IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Native.OS.SetupEnternalTools();
+            Native.OS.SetupExternalTools();
             Models.AvatarManager.Instance.Start();
 
             string startupRepo = null;
@@ -663,7 +681,16 @@ namespace SourceGit
                     prevChar = c;
                 }
 
-                trimmed.Add(sb.ToString());
+                var name = sb.ToString();
+                var idx = name.IndexOf('#');
+                if (idx >= 0)
+                {
+                    if (!name.Equals("fonts:Inter#Inter", StringComparison.Ordinal) &&
+                        !name.Equals("fonts:SourceGit#JetBrains Mono", StringComparison.Ordinal))
+                        continue;
+                }
+
+                trimmed.Add(name);
             }
 
             return trimmed.Count > 0 ? string.Join(',', trimmed) : string.Empty;

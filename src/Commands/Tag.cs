@@ -9,7 +9,7 @@ namespace SourceGit.Commands
             var cmd = new Command();
             cmd.WorkingDirectory = repo;
             cmd.Context = repo;
-            cmd.Args = $"tag {name} {basedOn}";
+            cmd.Args = $"tag --no-sign {name} {basedOn}";
             cmd.Log = log;
             return cmd.Exec();
         }
@@ -28,12 +28,13 @@ namespace SourceGit.Commands
                 string tmp = Path.GetTempFileName();
                 File.WriteAllText(tmp, message);
                 cmd.Args += $"-F \"{tmp}\"";
-            }
-            else
-            {
-                cmd.Args += $"-m {name}";
+
+                var succ = cmd.Exec();
+                File.Delete(tmp);
+                return succ;
             }
 
+            cmd.Args += $"-m {name}";
             return cmd.Exec();
         }
 

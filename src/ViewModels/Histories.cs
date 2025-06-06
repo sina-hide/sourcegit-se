@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public class Histories : ObservableObject
+    public class Histories : ObservableObject, IDisposable
     {
         public Repository Repo
         {
@@ -57,7 +57,7 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _navigationId, value);
         }
 
-        public object DetailContext
+        public IDisposable DetailContext
         {
             get => _detailContext;
             set => SetProperty(ref _detailContext, value);
@@ -98,23 +98,13 @@ namespace SourceGit.ViewModels
             _repo = repo;
         }
 
-        public void Cleanup()
+        public void Dispose()
         {
-            Commits = new List<Models.Commit>();
-
+            Commits = [];
             _repo = null;
             _graph = null;
             _autoSelectedCommit = null;
-
-            if (_detailContext is CommitDetail cd)
-            {
-                cd.Cleanup();
-            }
-            else if (_detailContext is RevisionCompare rc)
-            {
-                rc.Cleanup();
-            }
-
+            _detailContext?.Dispose();
             _detailContext = null;
         }
 
@@ -220,7 +210,7 @@ namespace SourceGit.ViewModels
             else
             {
                 _repo.SelectedSearchedCommit = null;
-                DetailContext = commits.Count;
+                DetailContext = new Models.Count(commits.Count);
             }
         }
 
@@ -343,10 +333,12 @@ namespace SourceGit.ViewModels
                         {
                             log = _repo.CreateLog("Save as Patch");
 
+                            var folder = picker[0];
+                            var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder?.Path.ToString();
                             var succ = false;
                             for (var i = 0; i < selected.Count; i++)
                             {
-                                var saveTo = GetPatchFileName(picker[0].Path.LocalPath, selected[i], i);
+                                var saveTo = GetPatchFileName(folderPath, selected[i], i);
                                 succ = await Task.Run(() => new Commands.FormatPatch(_repo.FullPath, selected[i].SHA, saveTo).Use(log).Exec());
                                 if (!succ)
                                     break;
@@ -387,7 +379,7 @@ namespace SourceGit.ViewModels
                 {
                     var builder = new StringBuilder();
                     foreach (var c in selected)
-                        builder.AppendLine($"{c.SHA.Substring(0, 10)} - {c.Subject}");
+                        builder.AppendLine($"{c.SHA.AsSpan(0, 10)} - {c.Subject}");
 
                     App.CopyText(builder.ToString());
                     e.Handled = true;
@@ -701,8 +693,10 @@ namespace SourceGit.ViewModels
                     {
                         log = _repo.CreateLog("Save as Patch");
 
-                        var saveTo = GetPatchFileName(selected[0].Path.LocalPath, commit);
-                        var succ = new Commands.FormatPatch(_repo.FullPath, commit.SHA, saveTo).Use(log).Exec();
+                        var folder = selected[0];
+                        var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder?.Path.ToString();
+                        var saveTo = GetPatchFileName(folderPath, commit);
+                        var succ = await Task.Run(() => new Commands.FormatPatch(_repo.FullPath, commit.SHA, saveTo).Use(log).Exec());
                         if (succ)
                             App.SendNotification(_repo.FullPath, App.Text("SaveAsPatchSuccess"));
                     }
@@ -780,7 +774,7 @@ namespace SourceGit.ViewModels
             copyInfo.Icon = App.CreateMenuIcon("Icons.Info");
             copyInfo.Click += (_, e) =>
             {
-                App.CopyText($"{commit.SHA.Substring(0, 10)} - {commit.Subject}");
+                App.CopyText($"{commit.SHA.AsSpan(0, 10)} - {commit.Subject}");
                 e.Handled = true;
             };
 
@@ -985,8 +979,8 @@ namespace SourceGit.ViewModels
 
             if (!_repo.IsBare)
             {
-                var detect = Commands.GitFlow.DetectType(_repo.FullPath, _repo.Branches, current.Name);
-                if (detect.IsGitFlowBranch)
+                var type = _repo.GetGitFlowType(current);
+                if (type != Models.GitFlowBranchType.None)
                 {
                     var finish = new MenuItem();
                     finish.Header = App.Text("BranchCM.Finish", current.Name);
@@ -994,7 +988,7 @@ namespace SourceGit.ViewModels
                     finish.Click += (_, e) =>
                     {
                         if (_repo.CanCreatePopup())
-                            _repo.ShowPopup(new GitFlowFinish(_repo, current, detect.Type, detect.Prefix));
+                            _repo.ShowPopup(new GitFlowFinish(_repo, current, type));
                         e.Handled = true;
                     };
                     submenu.Items.Add(finish);
@@ -1073,8 +1067,8 @@ namespace SourceGit.ViewModels
 
             if (!_repo.IsBare)
             {
-                var detect = Commands.GitFlow.DetectType(_repo.FullPath, _repo.Branches, branch.Name);
-                if (detect.IsGitFlowBranch)
+                var type = _repo.GetGitFlowType(branch);
+                if (type != Models.GitFlowBranchType.None)
                 {
                     var finish = new MenuItem();
                     finish.Header = App.Text("BranchCM.Finish", branch.Name);
@@ -1082,7 +1076,7 @@ namespace SourceGit.ViewModels
                     finish.Click += (_, e) =>
                     {
                         if (_repo.CanCreatePopup())
-                            _repo.ShowPopup(new GitFlowFinish(_repo, branch, detect.Type, detect.Prefix));
+                            _repo.ShowPopup(new GitFlowFinish(_repo, branch, type));
                         e.Handled = true;
                     };
                     submenu.Items.Add(finish);
@@ -1256,7 +1250,7 @@ namespace SourceGit.ViewModels
         private Models.CommitGraph _graph = null;
         private Models.Commit _autoSelectedCommit = null;
         private long _navigationId = 0;
-        private object _detailContext = null;
+        private IDisposable _detailContext = null;
 
         private Models.Bisect _bisect = null;
 

@@ -11,7 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public class StashesPage : ObservableObject
+    public class StashesPage : ObservableObject, IDisposable
     {
         public List<Models.Stash> Stashes
         {
@@ -53,34 +53,32 @@ namespace SourceGit.ViewModels
                     if (value == null)
                     {
                         Changes = null;
+                        _untracked.Clear();
                     }
                     else
                     {
                         Task.Run(() =>
                         {
-                            var changes = null as List<Models.Change>;
+                            var changes = new Commands.CompareRevisions(_repo.FullPath, $"{value.SHA}^", value.SHA).Result();
+                            var untracked = new List<Models.Change>();
 
-                            if (Native.OS.GitVersion >= Models.GitVersions.STASH_SHOW_WITH_UNTRACKED)
+                            if (value.Parents.Count == 3)
                             {
-                                changes = new Commands.QueryStashChanges(_repo.FullPath, value.Name).Result();
-                            }
-                            else
-                            {
-                                changes = new Commands.CompareRevisions(_repo.FullPath, $"{value.SHA}^", value.SHA).Result();
-                                if (value.Parents.Count == 3)
-                                {
-                                    var untracked = new Commands.CompareRevisions(_repo.FullPath, "4b825dc642cb6eb9a060e54bf8d69288fbee4904", value.Parents[2]).Result();
-                                    var needSort = changes.Count > 0;
+                                untracked = new Commands.CompareRevisions(_repo.FullPath, Models.Commit.EmptyTreeSHA1, value.Parents[2]).Result();
+                                var needSort = changes.Count > 0 && untracked.Count > 0;
 
-                                    foreach (var c in untracked)
-                                        changes.Add(c);
+                                foreach (var c in untracked)
+                                    changes.Add(c);
 
-                                    if (needSort)
-                                        changes.Sort((l, r) => string.Compare(l.Path, r.Path, StringComparison.Ordinal));
-                                }
+                                if (needSort)
+                                    changes.Sort((l, r) => string.Compare(l.Path, r.Path, StringComparison.Ordinal));
                             }
 
-                            Dispatcher.UIThread.Invoke(() => Changes = changes);
+                            Dispatcher.UIThread.Invoke(() =>
+                            {
+                                _untracked = untracked;
+                                Changes = changes;
+                            });
                         });
                     }
                 }
@@ -106,8 +104,8 @@ namespace SourceGit.ViewModels
                 {
                     if (value == null)
                         DiffContext = null;
-                    else if (value.Index == Models.ChangeState.Added && _selectedStash.Parents.Count == 3)
-                        DiffContext = new DiffContext(_repo.FullPath, new Models.DiffOption("4b825dc642cb6eb9a060e54bf8d69288fbee4904", _selectedStash.Parents[2], value), _diffContext);
+                    else if (_untracked.Contains(value))
+                        DiffContext = new DiffContext(_repo.FullPath, new Models.DiffOption(Models.Commit.EmptyTreeSHA1, _selectedStash.Parents[2], value), _diffContext);
                     else
                         DiffContext = new DiffContext(_repo.FullPath, new Models.DiffOption(_selectedStash.Parents[0], _selectedStash.SHA, value), _diffContext);
                 }
@@ -125,14 +123,14 @@ namespace SourceGit.ViewModels
             _repo = repo;
         }
 
-        public void Cleanup()
+        public void Dispose()
         {
+            _stashes?.Clear();
+            _changes?.Clear();
+            _untracked.Clear();
+
             _repo = null;
-            if (_stashes != null)
-                _stashes.Clear();
             _selectedStash = null;
-            if (_changes != null)
-                _changes.Clear();
             _selectedChange = null;
             _diffContext = null;
         }
@@ -182,8 +180,8 @@ namespace SourceGit.ViewModels
                     var opts = new List<Models.DiffOption>();
                     foreach (var c in _changes)
                     {
-                        if (c.Index == Models.ChangeState.Added && _selectedStash.Parents.Count == 3)
-                            opts.Add(new Models.DiffOption("4b825dc642cb6eb9a060e54bf8d69288fbee4904", _selectedStash.Parents[2], c));
+                        if (_untracked.Contains(c))
+                            opts.Add(new Models.DiffOption(Models.Commit.EmptyTreeSHA1, _selectedStash.Parents[2], c));
                         else
                             opts.Add(new Models.DiffOption(_selectedStash.Parents[0], _selectedStash.SHA, c));
                     }
@@ -274,12 +272,6 @@ namespace SourceGit.ViewModels
             return menu;
         }
 
-        public void Clear()
-        {
-            if (_repo.CanCreatePopup())
-                _repo.ShowPopup(new ClearStashes(_repo));
-        }
-
         public void ClearSearchFilter()
         {
             SearchFilter = string.Empty;
@@ -305,11 +297,12 @@ namespace SourceGit.ViewModels
         }
 
         private Repository _repo = null;
-        private List<Models.Stash> _stashes = new List<Models.Stash>();
-        private List<Models.Stash> _visibleStashes = new List<Models.Stash>();
+        private List<Models.Stash> _stashes = [];
+        private List<Models.Stash> _visibleStashes = [];
         private string _searchFilter = string.Empty;
         private Models.Stash _selectedStash = null;
         private List<Models.Change> _changes = null;
+        private List<Models.Change> _untracked = [];
         private Models.Change _selectedChange = null;
         private DiffContext _diffContext = null;
     }

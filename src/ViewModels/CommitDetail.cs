@@ -15,7 +15,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public partial class CommitDetail : ObservableObject
+    public partial class CommitDetail : ObservableObject, IDisposable
     {
         public int ActivePageIndex
         {
@@ -137,7 +137,7 @@ namespace SourceGit.ViewModels
             WebLinks = Models.CommitLink.Get(repo.Remotes);
         }
 
-        public void Cleanup()
+        public void Dispose()
         {
             _repo = null;
             _commit = null;
@@ -149,6 +149,7 @@ namespace SourceGit.ViewModels
             _diffContext = null;
             _viewRevisionFileContent = null;
             _cancellationSource = null;
+            _requestingRevisionFiles = false;
             _revisionFiles = null;
             _revisionFileSearchSuggestion = null;
         }
@@ -335,7 +336,7 @@ namespace SourceGit.ViewModels
                 options.DefaultExtension = ".patch";
                 options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
 
-                var baseRevision = _commit.Parents.Count == 0 ? "4b825dc642cb6eb9a060e54bf8d69288fbee4904" : _commit.Parents[0];
+                var baseRevision = _commit.Parents.Count == 0 ? Models.Commit.EmptyTreeSHA1 : _commit.Parents[0];
                 var storageFile = await storageProvider.SaveFilePickerAsync(options);
                 if (storageFile != null)
                 {
@@ -451,7 +452,9 @@ namespace SourceGit.ViewModels
                     var selected = await storageProvider.OpenFolderPickerAsync(options);
                     if (selected.Count == 1)
                     {
-                        var saveTo = Path.Combine(selected[0].Path.LocalPath, Path.GetFileName(file.Path));
+                        var folder = selected[0];
+                        var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder?.Path.ToString();
+                        var saveTo = Path.Combine(folderPath, Path.GetFileName(file.Path));
                         Commands.SaveRevisionFile.Run(_repo.FullPath, _commit.SHA, file.Path, saveTo);
                     }
                 }
@@ -546,6 +549,7 @@ namespace SourceGit.ViewModels
         private void Refresh()
         {
             _changes = null;
+            _requestingRevisionFiles = false;
             _revisionFiles = null;
 
             SignInfo = null;
@@ -593,7 +597,7 @@ namespace SourceGit.ViewModels
 
             Task.Run(() =>
             {
-                var parent = _commit.Parents.Count == 0 ? "4b825dc642cb6eb9a060e54bf8d69288fbee4904" : _commit.Parents[0];
+                var parent = _commit.Parents.Count == 0 ? Models.Commit.EmptyTreeSHA1 : _commit.Parents[0];
                 var cmd = new Commands.CompareRevisions(_repo.FullPath, parent, _commit.SHA) { CancellationToken = token };
                 var changes = cmd.Result();
                 var visible = changes;
@@ -812,16 +816,22 @@ namespace SourceGit.ViewModels
             {
                 if (_revisionFiles == null)
                 {
+                    if (_requestingRevisionFiles)
+                        return;
+
                     var sha = Commit.SHA;
+                    _requestingRevisionFiles = true;
 
                     Task.Run(() =>
                     {
                         var files = new Commands.QueryRevisionFileNames(_repo.FullPath, sha).Result();
                         Dispatcher.UIThread.Invoke(() =>
                         {
-                            if (sha == Commit.SHA)
+                            if (sha == Commit.SHA && _requestingRevisionFiles)
                             {
                                 _revisionFiles = files;
+                                _requestingRevisionFiles = false;
+
                                 if (!string.IsNullOrEmpty(_revisionFileSearchFilter))
                                     CalcRevisionFileSearchSuggestion();
                             }
@@ -907,6 +917,7 @@ namespace SourceGit.ViewModels
         private DiffContext _diffContext = null;
         private object _viewRevisionFileContent = null;
         private CancellationTokenSource _cancellationSource = null;
+        private bool _requestingRevisionFiles = false;
         private List<string> _revisionFiles = null;
         private string _revisionFileSearchFilter = string.Empty;
         private List<string> _revisionFileSearchSuggestion = null;

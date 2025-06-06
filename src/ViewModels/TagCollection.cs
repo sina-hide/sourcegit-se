@@ -1,21 +1,34 @@
 using System;
 using System.Collections.Generic;
+
 using Avalonia.Collections;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
+    public class TagTreeNodeToolTip
+    {
+        public string Name { get; private set; }
+        public bool IsAnnotated { get; private set; }
+        public string Message { get; private set; }
+
+        public TagTreeNodeToolTip(Models.Tag t)
+        {
+            Name = t.Name;
+            IsAnnotated = t.IsAnnotated;
+            Message = t.Message;
+        }
+    }
+
     public class TagTreeNode : ObservableObject
     {
-        public string FullPath { get; set; }
+        public string FullPath { get; private set; }
         public int Depth { get; private set; } = 0;
         public Models.Tag Tag { get; private set; } = null;
+        public TagTreeNodeToolTip ToolTip { get; private set; } = null;
         public List<TagTreeNode> Children { get; private set; } = [];
-
-        public object ToolTip
-        {
-            get => Tag?.Message;
-        }
+        public int Counter { get; set; } = 0;
 
         public bool IsFolder
         {
@@ -28,11 +41,17 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _isExpanded, value);
         }
 
+        public string TagsCount
+        {
+            get => Counter > 0 ? $"({Counter})" : string.Empty;
+        }
+
         public TagTreeNode(Models.Tag t, int depth)
         {
             FullPath = t.Name;
             Depth = depth;
             Tag = t;
+            ToolTip = new TagTreeNodeToolTip(t);
             IsExpanded = false;
         }
 
@@ -41,9 +60,10 @@ namespace SourceGit.ViewModels
             FullPath = path;
             Depth = depth;
             IsExpanded = isExpanded;
+            Counter = 1;
         }
 
-        public static List<TagTreeNode> Build(IList<Models.Tag> tags, HashSet<string> expaneded)
+        public static List<TagTreeNode> Build(List<Models.Tag> tags, HashSet<string> expaneded)
         {
             var nodes = new List<TagTreeNode>();
             var folders = new Dictionary<string, TagTreeNode>();
@@ -66,6 +86,7 @@ namespace SourceGit.ViewModels
                         if (folders.TryGetValue(folder, out var value))
                         {
                             lastFolder = value;
+                            lastFolder.Counter++;
                         }
                         else if (lastFolder == null)
                         {
@@ -112,7 +133,7 @@ namespace SourceGit.ViewModels
 
     public class TagCollectionAsList
     {
-        public AvaloniaList<Models.Tag> Tags
+        public List<Models.Tag> Tags
         {
             get;
             set;
@@ -132,5 +153,71 @@ namespace SourceGit.ViewModels
             get;
             set;
         } = [];
+
+        public static TagCollectionAsTree Build(List<Models.Tag> tags, TagCollectionAsTree old)
+        {
+            var oldExpanded = new HashSet<string>();
+            if (old != null)
+            {
+                foreach (var row in old.Rows)
+                {
+                    if (row.IsFolder && row.IsExpanded)
+                        oldExpanded.Add(row.FullPath);
+                }
+            }
+
+            var collection = new TagCollectionAsTree();
+            collection.Tree = TagTreeNode.Build(tags, oldExpanded);
+
+            var rows = new List<TagTreeNode>();
+            MakeTreeRows(rows, collection.Tree);
+            collection.Rows.AddRange(rows);
+
+            return collection;
+        }
+
+        public void ToggleExpand(TagTreeNode node)
+        {
+            node.IsExpanded = !node.IsExpanded;
+
+            var rows = Rows;
+            var depth = node.Depth;
+            var idx = rows.IndexOf(node);
+            if (idx == -1)
+                return;
+
+            if (node.IsExpanded)
+            {
+                var subrows = new List<TagTreeNode>();
+                MakeTreeRows(subrows, node.Children);
+                rows.InsertRange(idx + 1, subrows);
+            }
+            else
+            {
+                var removeCount = 0;
+                for (int i = idx + 1; i < rows.Count; i++)
+                {
+                    var row = rows[i];
+                    if (row.Depth <= depth)
+                        break;
+
+                    removeCount++;
+                }
+                rows.RemoveRange(idx + 1, removeCount);
+            }
+        }
+
+        private static void MakeTreeRows(List<TagTreeNode> rows, List<TagTreeNode> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                rows.Add(node);
+
+                if (!node.IsExpanded || !node.IsFolder)
+                    continue;
+
+                MakeTreeRows(rows, node.Children);
+            }
+        }
     }
 }

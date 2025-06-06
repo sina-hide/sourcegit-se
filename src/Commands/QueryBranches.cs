@@ -17,15 +17,17 @@ namespace SourceGit.Commands
             Args = "branch -l --all -v --format=\"%(refname)%00%(committerdate:unix)%00%(objectname)%00%(HEAD)%00%(upstream)%00%(upstream:trackshort)\"";
         }
 
-        public List<Models.Branch> Result()
+        public List<Models.Branch> Result(out int localBranchesCount)
         {
+            localBranchesCount = 0;
+
             var branches = new List<Models.Branch>();
             var rs = ReadToEnd();
             if (!rs.IsSuccess)
                 return branches;
 
             var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            var remoteBranches = new HashSet<string>();
+            var remoteHeads = new Dictionary<string, string>();
             foreach (var line in lines)
             {
                 var b = ParseLine(line);
@@ -33,14 +35,31 @@ namespace SourceGit.Commands
                 {
                     branches.Add(b);
                     if (!b.IsLocal)
-                        remoteBranches.Add(b.FullName);
+                        remoteHeads.Add(b.FullName, b.Head);
+                    else
+                        localBranchesCount++;
                 }
             }
 
             foreach (var b in branches)
             {
                 if (b.IsLocal && !string.IsNullOrEmpty(b.Upstream))
-                    b.IsUpstreamGone = !remoteBranches.Contains(b.Upstream);
+                {
+                    if (remoteHeads.TryGetValue(b.Upstream, out var upstreamHead))
+                    {
+                        b.IsUpstreamGone = false;
+
+                        if (b.TrackStatus == null)
+                            b.TrackStatus = new QueryTrackStatus(WorkingDirectory, b.Head, upstreamHead).Result();
+                    }
+                    else
+                    {
+                        b.IsUpstreamGone = true;
+
+                        if (b.TrackStatus == null)
+                            b.TrackStatus = new Models.BranchTrackStatus();
+                    }
+                }
             }
 
             return branches;
@@ -89,9 +108,10 @@ namespace SourceGit.Commands
             branch.Upstream = parts[4];
             branch.IsUpstreamGone = false;
 
-            if (branch.IsLocal && !string.IsNullOrEmpty(parts[5]) && !parts[5].Equals("=", StringComparison.Ordinal))
-                branch.TrackStatus = new QueryTrackStatus(WorkingDirectory, branch.Name, branch.Upstream).Result();
-            else
+            if (!branch.IsLocal ||
+                string.IsNullOrEmpty(branch.Upstream) ||
+                string.IsNullOrEmpty(parts[5]) ||
+                parts[5].Equals("=", StringComparison.Ordinal))
                 branch.TrackStatus = new Models.BranchTrackStatus();
 
             return branch;

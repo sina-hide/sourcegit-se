@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
+using Avalonia.Threading;
+
 namespace SourceGit.Commands
 {
     public partial class QueryLocalChanges : Command
@@ -22,7 +24,10 @@ namespace SourceGit.Commands
             var outs = new List<Models.Change>();
             var rs = ReadToEnd();
             if (!rs.IsSuccess)
+            {
+                Dispatcher.UIThread.Post(() => App.RaiseException(Context, rs.StdErr));
                 return outs;
+            }
 
             var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
@@ -117,37 +122,36 @@ namespace SourceGit.Commands
                     case "CD":
                         change.Set(Models.ChangeState.Copied, Models.ChangeState.Deleted);
                         break;
-                    case "DR":
-                        change.Set(Models.ChangeState.Deleted, Models.ChangeState.Renamed);
-                        break;
-                    case "DC":
-                        change.Set(Models.ChangeState.Deleted, Models.ChangeState.Copied);
-                        break;
                     case "DD":
-                        change.Set(Models.ChangeState.Deleted, Models.ChangeState.Deleted);
+                        change.ConflictReason = Models.ConflictReason.BothDeleted;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "AU":
-                        change.Set(Models.ChangeState.Added, Models.ChangeState.Unmerged);
+                        change.ConflictReason = Models.ConflictReason.AddedByUs;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "UD":
-                        change.Set(Models.ChangeState.Unmerged, Models.ChangeState.Deleted);
+                        change.ConflictReason = Models.ConflictReason.DeletedByThem;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "UA":
-                        change.Set(Models.ChangeState.Unmerged, Models.ChangeState.Added);
+                        change.ConflictReason = Models.ConflictReason.AddedByThem;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "DU":
-                        change.Set(Models.ChangeState.Deleted, Models.ChangeState.Unmerged);
+                        change.ConflictReason = Models.ConflictReason.DeletedByUs;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "AA":
-                        change.Set(Models.ChangeState.Added, Models.ChangeState.Added);
+                        change.ConflictReason = Models.ConflictReason.BothAdded;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "UU":
-                        change.Set(Models.ChangeState.Unmerged, Models.ChangeState.Unmerged);
+                        change.ConflictReason = Models.ConflictReason.BothModified;
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Conflicted);
                         break;
                     case "??":
-                        change.Set(Models.ChangeState.Untracked, Models.ChangeState.Untracked);
-                        break;
-                    default:
+                        change.Set(Models.ChangeState.None, Models.ChangeState.Untracked);
                         break;
                 }
 
