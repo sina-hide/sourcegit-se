@@ -39,17 +39,18 @@ then
     fi
 fi
 
-if [[ $usescale = true ]]
+if [ $usescale = true ]
 then
+    # shellcheck disable=SC2016
     echo >> "$desktop" '# Find the name of displays by using `xrandr --listactivemonitors`.'
 fi
 
-echo -n >> "$desktop" 'Exec = /usr/bin/env'
-echo -n >> "$desktop" ' AVALONIA_IM_MODULE=none'
+exec='Exec = /usr/bin/env AVALONIA_IM_MODULE=none'
 
-if [[ $usescale = true ]]
+if [ $usescale = true ]
 then
-    echo -n >> "$desktop" " AVALONIA_SCREEN_SCALE_FACTORS='$scale'"
+    exec="$exec AVALONIA_SCREEN_SCALE_FACTORS='$scale'"
 fi
 
-echo >> "$desktop" " $inst/sourcegit/sourcegit"
+exec="$exec $inst/sourcegit/sourcegit"
+echo "$exec" >> "$desktop"
