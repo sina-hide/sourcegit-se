@@ -29,20 +29,27 @@ END
 
 echo >> "$desktop" "Icon = $inst/sourcegit/sourcegit.png"
 
-useenv=false
+usescale=false
 if [ -e "$repo"/install/scale-factors.local.conf ]
 then
     scale=$(cat "$repo"/install/scale-factors.local.conf)
     if [ -n "$scale" ]
     then
-        useenv=true
+        usescale=true
     fi
 fi
 
-if [[ $useenv = true ]]
+if [[ $usescale = true ]]
 then
     echo >> "$desktop" '# Find the name of displays by using `xrandr --listactivemonitors`.'
-    echo >> "$desktop" "Exec = /usr/bin/env AVALONIA_SCREEN_SCALE_FACTORS='$scale' $inst/sourcegit/sourcegit"
-else
-    echo >> "$desktop" "Exec = $inst/sourcegit/sourcegit"
 fi
+
+echo -n >> "$desktop" 'Exec = /usr/bin/env'
+echo -n >> "$desktop" ' AVALONIA_IM_MODULE=none'
+
+if [[ $usescale = true ]]
+then
+    echo -n >> "$desktop" " AVALONIA_SCREEN_SCALE_FACTORS='$scale'"
+fi
+
+echo >> "$desktop" " $inst/sourcegit/sourcegit"
