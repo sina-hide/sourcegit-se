@@ -7,7 +7,7 @@ set -e
 cd ..
 
 repo=$PWD
-inst="$HOME"/.local/share
+inst="${XDG_DATA_HOME:-$HOME/.local/share}"
 
 dotnet publish -r linux-x64 -c Release
 
