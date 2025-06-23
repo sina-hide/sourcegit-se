@@ -110,7 +110,7 @@
 
             <ListBox.ItemsPanel>
               <ItemsPanelTemplate>
-                <VirtualizingStackPanel Orientation="Vertical"/>
+                <v:VirtualizingStackPanelNoOverscroll Orientation="Vertical"/>
               </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
 
