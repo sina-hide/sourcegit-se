@@ -1,0 +1,5 @@
+[*.sh]
+# It's important, that shell scripts use tabs for indentation, since
+# here-documents as used in this directory need tabs (instead of spaces) as
+# indentation.
+indent_style = tab

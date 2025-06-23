@@ -39,5 +39,3 @@ build/*.AppImage
 SourceGit.app/
 build.command
 src/Properties/launchSettings.json
-
-install/*.local.conf
