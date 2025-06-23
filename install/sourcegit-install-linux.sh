@@ -23,4 +23,7 @@ cat > "$applications_dir"/SourceGit.desktop <<- END
 END
 
 # Create conf file, but don't silently overwrite existing conf file.
-cp -pi "$sourcegit_dir"/sourcegit-start-linux.template.conf "$applications_dir"/SourceGit.desktop.conf
+cp -pi \
+    "$sourcegit_dir"/sourcegit-start-linux.template.conf \
+    "$applications_dir"/SourceGit.desktop.conf \
+    || true
