@@ -33,3 +33,5 @@ described as lagging.
 
 Overscroll is prevented in the history view of SourceGit SE.  This is tested
 on Fedora only so far.
+
+Overscroll was only seen on Linux so far.
