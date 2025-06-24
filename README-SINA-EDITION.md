@@ -13,6 +13,10 @@ project minimal and mergeable.
 This is an overview of the differences between this unofficial fork and the
 upstream project.
 
+### About Box
+
+The program is called SourceGit SE instead of SourceGit in the about box.
+
 ### Installation
 
 This unofficial fork contains an installation directory with scripts for
