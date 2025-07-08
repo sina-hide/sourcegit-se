@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
@@ -57,7 +56,7 @@ namespace SourceGit.ViewModels
             Mode = AutoSelectMergeMode();
         }
 
-        public override Task<bool> Sure()
+        public override async Task<bool> Sure()
         {
             _repo.SetWatcherEnabled(false);
             _repo.ClearCommitMessage();
@@ -66,54 +65,29 @@ namespace SourceGit.ViewModels
             var log = _repo.CreateLog($"Merging '{_sourceName}' into '{Into}'");
             Use(log);
 
-            return Task.Run(() =>
-            {
-                new Commands.Merge(_repo.FullPath, _sourceName, Mode.Arg, Edit).Use(log).Exec();
-                log.Complete();
+            await new Commands.Merge(_repo.FullPath, _sourceName, Mode.Arg, Edit)
+                .Use(log)
+                .ExecAsync();
 
-                var head = new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").Result();
-                CallUIThread(() =>
-                {
-                    _repo.NavigateToCommit(head, true);
-                    _repo.SetWatcherEnabled(true);
-                });
-                return true;
-            });
+            log.Complete();
+
+            var head = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
+            _repo.NavigateToCommit(head, true);
+            _repo.SetWatcherEnabled(true);
+            return true;
         }
 
         private Models.MergeMode AutoSelectMergeMode()
         {
             return
-                GetGitConfigBranchMergeOptions()
-                ?? GetGitConfigMergeFF()
-                ?? GetSettingsPreferredMergeMode();
-        }
-
-        private Models.MergeMode GetSettingsPreferredMergeMode()
-        {
-            var preferredMergeModeIdx = _repo.Settings.PreferredMergeMode;
-            if (preferredMergeModeIdx < 0 || preferredMergeModeIdx > Models.MergeMode.Supported.Length)
-                preferredMergeModeIdx = 0;
-
-            var defaultMergeMode = Models.MergeMode.Supported[preferredMergeModeIdx];
-            return defaultMergeMode;
-        }
-
-        private Models.MergeMode GetGitConfigMergeFF()
-        {
-            var config = new Commands.Config(_repo.FullPath).Get("merge.ff");
-            return config switch
-            {
-                null or "" => null,
-                "false" => Models.MergeMode.NoFastForward,
-                "only" => Models.MergeMode.FastForward,
-                _ => null
-            };
+                GetGitConfigBranchMergeOptions() // Branch
+                ?? GetSettingsPreferredMergeMode() // Repository
+                ?? GetGitConfigMergeFF(); // Global
         }
 
         private Models.MergeMode GetGitConfigBranchMergeOptions()
         {
-            var config = new Commands.Config(_repo.FullPath).Get($"branch.{Into}.mergeoptions");
+            var config = new Commands.Config(_repo.FullPath).GetAsync($"branch.{Into}.mergeoptions").Result;
             return config switch
             {
                 null or "" => null,
@@ -122,6 +96,26 @@ namespace SourceGit.ViewModels
                 "--squash" => Models.MergeMode.Squash,
                 "--no-commit" or "--no-ff --no-commit" => Models.MergeMode.DontCommit,
                 _ => null
+            };
+        }
+
+        private Models.MergeMode GetSettingsPreferredMergeMode()
+        {
+            var preferredMergeModeIdx = _repo.Settings.PreferredMergeMode;
+            if (preferredMergeModeIdx < 0 || preferredMergeModeIdx > Models.MergeMode.Supported.Length)
+                return null;
+
+            return Models.MergeMode.Supported[preferredMergeModeIdx];
+        }
+
+        private Models.MergeMode GetGitConfigMergeFF()
+        {
+            var config = new Commands.Config(_repo.FullPath).GetAsync("merge.ff").Result;
+            return config switch
+            {
+                "false" => Models.MergeMode.NoFastForward,
+                "only" => Models.MergeMode.FastForward,
+                _ => Models.MergeMode.Default
             };
         }
 
