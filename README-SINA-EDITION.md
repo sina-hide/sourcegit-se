@@ -22,16 +22,3 @@ The program is called SourceGit SE instead of SourceGit in the about box.
 This unofficial fork contains an installation directory with scripts for
 installing on Linux.  The installation is local (no root required) with
 configurable scaling and IM module prevention.
-
-### Preventing Overscroll
-
-Overscroll can occur, if you scroll really fast (for example using a Logitech MX
-Master mouse with MagSpeed Electromagnetic scrolling) and then suddenly stop
-scrolling (by stopping the scroll wheel with your finger).  If the scrolling
-itself doesn't stop immediately, you experience overscroll.  It could also be
-described as lagging.
-
-Overscroll is prevented in the history view of SourceGit SE.  This is tested
-on Fedora only so far.
-
-Overscroll was only seen on Linux so far.
