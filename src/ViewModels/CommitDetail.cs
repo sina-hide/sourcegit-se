@@ -235,13 +235,53 @@ namespace SourceGit.ViewModels
             var fullPath = Native.OS.GetAbsPath(_repo.FullPath, file);
             var fileName = Path.GetFileNameWithoutExtension(fullPath) ?? "";
             var fileExt = Path.GetExtension(fullPath) ?? "";
-            var tmpFile = Path.Combine(Path.GetTempPath(), $"{fileName}~{_commit.SHA.Substring(0, 10)}{fileExt}");
+            var tmpFile = Path.Combine(Path.GetTempPath(), $"{fileName}~{_commit.SHA.AsSpan(0, 10)}{fileExt}");
 
             await Commands.SaveRevisionFile
                 .RunAsync(_repo.FullPath, _commit.SHA, file, tmpFile)
                 .ConfigureAwait(false);
 
             Native.OS.OpenWithDefaultEditor(tmpFile);
+        }
+
+        public string GetAbsPath(string path)
+        {
+            return Native.OS.GetAbsPath(_repo.FullPath, path);
+        }
+
+        public void OpenChangeInMergeTool(Models.Change c)
+        {
+            var toolType = Preferences.Instance.ExternalMergeToolType;
+            var toolPath = Preferences.Instance.ExternalMergeToolPath;
+            var opt = new Models.DiffOption(_commit, c);
+            new Commands.DiffTool(_repo.FullPath, toolType, toolPath, opt).Open();
+        }
+
+        public async Task SaveRevisionFile(Models.Object file)
+        {
+            var storageProvider = App.GetStorageProvider();
+            if (storageProvider == null)
+                return;
+
+            var options = new FolderPickerOpenOptions() { AllowMultiple = false };
+            try
+            {
+                var selected = await storageProvider.OpenFolderPickerAsync(options);
+                if (selected.Count == 1)
+                {
+                    var folder = selected[0];
+                    var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder.Path.ToString();
+                    var saveTo = Path.Combine(folderPath, Path.GetFileName(file.Path)!);
+
+                    await Commands.SaveRevisionFile
+                        .RunAsync(_repo.FullPath, _commit.SHA, file.Path, saveTo)
+                        .ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                App.RaiseException(_repo.FullPath, $"Failed to save file: {e.Message}");
+            }
         }
 
         public ContextMenu CreateChangeContextMenuByFolder(ChangeTreeNode node, List<Models.Change> changes)
@@ -296,6 +336,7 @@ namespace SourceGit.ViewModels
             var copyPath = new MenuItem();
             copyPath.Header = App.Text("CopyPath");
             copyPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyPath.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
             copyPath.Click += async (_, ev) =>
             {
                 await App.CopyTextAsync(node.FullPath);
@@ -305,6 +346,7 @@ namespace SourceGit.ViewModels
             var copyFullPath = new MenuItem();
             copyFullPath.Header = App.Text("CopyFullPath");
             copyFullPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyFullPath.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+C" : "Ctrl+Shift+C";
             copyFullPath.Click += async (_, e) =>
             {
                 await App.CopyTextAsync(fullPath);
@@ -325,16 +367,13 @@ namespace SourceGit.ViewModels
 
         public ContextMenu CreateChangeContextMenu(Models.Change change)
         {
-            var diffWithMerger = new MenuItem();
-            diffWithMerger.Header = App.Text("DiffWithMerger");
-            diffWithMerger.Icon = App.CreateMenuIcon("Icons.OpenWith");
-            diffWithMerger.Click += (sender, ev) =>
+            var openWithMerger = new MenuItem();
+            openWithMerger.Header = App.Text("OpenInExternalMergeTool");
+            openWithMerger.Icon = App.CreateMenuIcon("Icons.OpenWith");
+            openWithMerger.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+D" : "Ctrl+Shift+D";
+            openWithMerger.Click += (_, ev) =>
             {
-                var toolType = Preferences.Instance.ExternalMergeToolType;
-                var toolPath = Preferences.Instance.ExternalMergeToolPath;
-                var opt = new Models.DiffOption(_commit, change);
-
-                _ = Commands.MergeTool.OpenForDiffAsync(_repo.FullPath, toolType, toolPath, opt);
+                OpenChangeInMergeTool(change);
                 ev.Handled = true;
             };
 
@@ -396,7 +435,7 @@ namespace SourceGit.ViewModels
             };
 
             var menu = new ContextMenu();
-            menu.Items.Add(diffWithMerger);
+            menu.Items.Add(openWithMerger);
             menu.Items.Add(explore);
             menu.Items.Add(new MenuItem { Header = "-" });
             menu.Items.Add(history);
@@ -435,6 +474,7 @@ namespace SourceGit.ViewModels
             var copyPath = new MenuItem();
             copyPath.Header = App.Text("CopyPath");
             copyPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyPath.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
             copyPath.Click += async (_, ev) =>
             {
                 await App.CopyTextAsync(change.Path);
@@ -444,6 +484,7 @@ namespace SourceGit.ViewModels
             var copyFullPath = new MenuItem();
             copyFullPath.Header = App.Text("CopyFullPath");
             copyFullPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyFullPath.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+C" : "Ctrl+Shift+C";
             copyFullPath.Click += async (_, e) =>
             {
                 await App.CopyTextAsync(fullPath);
@@ -480,6 +521,7 @@ namespace SourceGit.ViewModels
             var copyPath = new MenuItem();
             copyPath.Header = App.Text("CopyPath");
             copyPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyPath.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
             copyPath.Click += async (_, ev) =>
             {
                 await App.CopyTextAsync(path);
@@ -489,6 +531,7 @@ namespace SourceGit.ViewModels
             var copyFullPath = new MenuItem();
             copyFullPath.Header = App.Text("CopyFullPath");
             copyFullPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyFullPath.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+C" : "Ctrl+Shift+C";
             copyFullPath.Click += async (_, e) =>
             {
                 await App.CopyTextAsync(fullPath);
@@ -512,19 +555,10 @@ namespace SourceGit.ViewModels
 
             var menu = new ContextMenu();
             var fullPath = Native.OS.GetAbsPath(_repo.FullPath, file.Path);
-            var explore = new MenuItem();
-            explore.Header = App.Text("RevealFile");
-            explore.Icon = App.CreateMenuIcon("Icons.Explore");
-            explore.IsEnabled = File.Exists(fullPath);
-            explore.Click += (_, ev) =>
-            {
-                Native.OS.OpenInFileManager(fullPath, file.Type == Models.ObjectType.Blob);
-                ev.Handled = true;
-            };
-
             var openWith = new MenuItem();
             openWith.Header = App.Text("OpenWith");
             openWith.Icon = App.CreateMenuIcon("Icons.OpenWith");
+            openWith.Tag = OperatingSystem.IsMacOS() ? "⌘+O" : "Ctrl+O";
             openWith.IsEnabled = file.Type == Models.ObjectType.Blob;
             openWith.Click += async (_, ev) =>
             {
@@ -536,38 +570,26 @@ namespace SourceGit.ViewModels
             saveAs.Header = App.Text("SaveAs");
             saveAs.Icon = App.CreateMenuIcon("Icons.Save");
             saveAs.IsEnabled = file.Type == Models.ObjectType.Blob;
+            saveAs.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+S" : "Ctrl+Shift+S";
             saveAs.Click += async (_, ev) =>
             {
-                var storageProvider = App.GetStorageProvider();
-                if (storageProvider == null)
-                    return;
-
-                var options = new FolderPickerOpenOptions() { AllowMultiple = false };
-                try
-                {
-                    var selected = await storageProvider.OpenFolderPickerAsync(options);
-                    if (selected.Count == 1)
-                    {
-                        var folder = selected[0];
-                        var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder.Path.ToString();
-                        var saveTo = Path.Combine(folderPath, Path.GetFileName(file.Path)!);
-
-                        await Commands.SaveRevisionFile
-                            .RunAsync(_repo.FullPath, _commit.SHA, file.Path, saveTo)
-                            .ConfigureAwait(false);
-                    }
-                }
-                catch (Exception e)
-                {
-                    App.RaiseException(_repo.FullPath, $"Failed to save file: {e.Message}");
-                }
-
+                await SaveRevisionFile(file);
                 ev.Handled = true;
             };
 
-            menu.Items.Add(explore);
+            var explore = new MenuItem();
+            explore.Header = App.Text("RevealFile");
+            explore.Icon = App.CreateMenuIcon("Icons.Explore");
+            explore.IsEnabled = File.Exists(fullPath);
+            explore.Click += (_, ev) =>
+            {
+                Native.OS.OpenInFileManager(fullPath, file.Type == Models.ObjectType.Blob);
+                ev.Handled = true;
+            };
+
             menu.Items.Add(openWith);
             menu.Items.Add(saveAs);
+            menu.Items.Add(explore);
             menu.Items.Add(new MenuItem() { Header = "-" });
 
             var history = new MenuItem();
@@ -625,6 +647,7 @@ namespace SourceGit.ViewModels
             var copyPath = new MenuItem();
             copyPath.Header = App.Text("CopyPath");
             copyPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyPath.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
             copyPath.Click += async (_, ev) =>
             {
                 await App.CopyTextAsync(file.Path);
@@ -634,6 +657,7 @@ namespace SourceGit.ViewModels
             var copyFullPath = new MenuItem();
             copyFullPath.Header = App.Text("CopyFullPath");
             copyFullPath.Icon = App.CreateMenuIcon("Icons.Copy");
+            copyFullPath.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+C" : "Ctrl+Shift+C";
             copyFullPath.Click += async (_, e) =>
             {
                 await App.CopyTextAsync(fullPath);
@@ -762,12 +786,8 @@ namespace SourceGit.ViewModels
             }
 
             var urlMatches = REG_URL_FORMAT().Matches(message);
-            for (int i = 0; i < urlMatches.Count; i++)
+            foreach (Match match in urlMatches)
             {
-                var match = urlMatches[i];
-                if (!match.Success)
-                    continue;
-
                 var start = match.Index;
                 var len = match.Length;
                 if (inlines.Intersect(start, len) != null)
@@ -779,12 +799,8 @@ namespace SourceGit.ViewModels
             }
 
             var shaMatches = REG_SHA_FORMAT().Matches(message);
-            for (int i = 0; i < shaMatches.Count; i++)
+            foreach (Match match in shaMatches)
             {
-                var match = shaMatches[i];
-                if (!match.Success)
-                    continue;
-
                 var start = match.Index;
                 var len = match.Length;
                 if (inlines.Intersect(start, len) != null)
@@ -824,11 +840,7 @@ namespace SourceGit.ViewModels
 
         private void TryToAddContextMenuItemsForGitLFS(ContextMenu menu, string fullPath, string path)
         {
-            if (_repo.Remotes.Count == 0 || !File.Exists(fullPath))
-                return;
-
-            var lfsEnabled = new Commands.LFS(_repo.FullPath).IsEnabled();
-            if (!lfsEnabled)
+            if (_repo.Remotes.Count == 0 || !File.Exists(fullPath) || !_repo.IsLFSEnabled())
                 return;
 
             var lfs = new MenuItem();
@@ -842,12 +854,7 @@ namespace SourceGit.ViewModels
             {
                 lfsLock.Click += async (_, e) =>
                 {
-                    var log = _repo.CreateLog("Lock LFS file");
-                    var succ = await new Commands.LFS(_repo.FullPath).LockAsync(_repo.Remotes[0].Name, path, log);
-                    if (succ)
-                        App.SendNotification(_repo.FullPath, $"Lock file \"{path}\" successfully!");
-
-                    log.Complete();
+                    await _repo.LockLFSFileAsync(_repo.Remotes[0].Name, path);
                     e.Handled = true;
                 };
             }
@@ -860,12 +867,7 @@ namespace SourceGit.ViewModels
                     lockRemote.Header = remoteName;
                     lockRemote.Click += async (_, e) =>
                     {
-                        var log = _repo.CreateLog("Lock LFS file");
-                        var succ = await new Commands.LFS(_repo.FullPath).LockAsync(remoteName, path, log);
-                        if (succ)
-                            App.SendNotification(_repo.FullPath, $"Lock file \"{path}\" successfully!");
-
-                        log.Complete();
+                        await _repo.LockLFSFileAsync(remoteName, path);
                         e.Handled = true;
                     };
                     lfsLock.Items.Add(lockRemote);
@@ -880,12 +882,7 @@ namespace SourceGit.ViewModels
             {
                 lfsUnlock.Click += async (_, e) =>
                 {
-                    var log = _repo.CreateLog("Unlock LFS file");
-                    var succ = await new Commands.LFS(_repo.FullPath).UnlockAsync(_repo.Remotes[0].Name, path, false, log);
-                    if (succ)
-                        App.SendNotification(_repo.FullPath, $"Unlock file \"{path}\" successfully!");
-
-                    log.Complete();
+                    await _repo.UnlockLFSFileAsync(_repo.Remotes[0].Name, path, false, true);
                     e.Handled = true;
                 };
             }
@@ -898,12 +895,7 @@ namespace SourceGit.ViewModels
                     unlockRemote.Header = remoteName;
                     unlockRemote.Click += async (_, e) =>
                     {
-                        var log = _repo.CreateLog("Unlock LFS file");
-                        var succ = await new Commands.LFS(_repo.FullPath).UnlockAsync(remoteName, path, false, log);
-                        if (succ)
-                            App.SendNotification(_repo.FullPath, $"Unlock file \"{path}\" successfully!");
-
-                        log.Complete();
+                        await _repo.UnlockLFSFileAsync(remoteName, path, false, true);
                         e.Handled = true;
                     };
                     lfsUnlock.Items.Add(unlockRemote);
