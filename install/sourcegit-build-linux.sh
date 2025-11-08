@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 # Prerequisite Fedora: sudo dnf install clang zlib-devel
+# Additional prererquisite: mise has to be installed (https://mise.jdx.dev)
 
 set -e
 
@@ -17,6 +18,10 @@ case $machine in
 	x86_64)  runtime_identifier=linux-x64;;
 	*)       echo unsupported machine "$machine"; exit 1;;
 esac
+
+# Install configured dotnet version if not yet installed.
+mise trust 2> /dev/null
+mise install
 
 dotnet publish --runtime "$runtime_identifier" --configuration Release
 

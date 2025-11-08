@@ -22,3 +22,15 @@ The program is called SourceGit SE instead of SourceGit in the about box.
 This unofficial fork contains an installation directory with scripts for
 installing on Linux.  The installation is local (no root required) with
 configurable scaling and IM module prevention.
+
+### Mise-en-place
+
+For installing an exact version of dotnet, mise-en-place (or mise for short,
+see https://mise.jdx.dev for details) is used.  By executing `mise install` in
+the root directory of the repository it can be installed.  As an alternative it
+will be installed when using the installation scripts to build and install
+SourceGit SE.
+
+The downside is that **Rider doesn't auto-detect** the .NET CLI executable path.  It
+has to be configured accordingly under *Settings » Build, Execution, Deployment
+» Toolset and Build*.  The MSBuild version should then be auto-detected.
