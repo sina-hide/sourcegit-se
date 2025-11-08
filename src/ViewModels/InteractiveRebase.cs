@@ -95,11 +95,6 @@ namespace SourceGit.ViewModels
             get => _repo.Settings.IssueTrackerRules;
         }
 
-        public AvaloniaList<Models.IssueTrackerRule> SharedIssueTrackerRules
-        {
-            get => _repo.SharedIssueTrackerRules;
-        }
-
         public bool IsLoading
         {
             get => _isLoading;

@@ -20,9 +20,9 @@ namespace SourceGit.Commands
             }
         }
 
-        public async Task<Dictionary<string, string>> ReadAllAsync(string file = null)
+        public async Task<Dictionary<string, string>> ReadAllAsync()
         {
-            Args = string.IsNullOrEmpty(file) ? "config -l" : $"config -l -f {file}";
+            Args = "config -l";
 
             var output = await ReadToEndAsync().ConfigureAwait(false);
             var rs = new Dictionary<string, string>();

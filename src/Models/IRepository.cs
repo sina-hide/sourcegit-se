@@ -4,8 +4,6 @@
     {
         bool MayHaveSubmodules();
 
-        void LoadSharedIssueTrackerRules();
-
         void RefreshBranches();
         void RefreshWorktrees();
         void RefreshTags();
