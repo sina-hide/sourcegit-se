@@ -29,7 +29,7 @@ rm -rf "$sourcegit_dir"
 mkdir -p "$sourcegit_dir"
 
 # Copy binaries.
-cp -pr "$repo"/src/bin/Release/net9.0/linux-x64/publish/* "$sourcegit_dir"
+cp -pr "$repo"/src/bin/Release/net10.0/linux-x64/publish/* "$sourcegit_dir"
 
 # Copy icon.
 cp -p "$repo"/build/resources/_common/icons/sourcegit.png "$sourcegit_dir"
