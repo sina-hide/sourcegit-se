@@ -20,7 +20,7 @@
                                  Placeholder="{DynamicResource Text.CommitMessageTextBox.Placeholder}"
                                  SubjectLineBrush="{DynamicResource Brush.Border2}"
                                  Foreground="{DynamicResource Brush.FG1}"
-                                 FontFamily="{DynamicResource Fonts.Default}"
+                                 FontFamily="{DynamicResource Fonts.Monospace}"
                                  FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
                                  Tag="{Binding Source={x:Static v:StealHotKey.Enter}}">
         <Interaction.Behaviors>
