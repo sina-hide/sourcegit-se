@@ -5,6 +5,7 @@
              xmlns:c="using:SourceGit.Converters"
              xmlns:vm="using:SourceGit.ViewModels"
              xmlns:v="using:SourceGit.Views"
+             xmlns:tw="clr-namespace:SourceGit.Sina.TextWrapping"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.CommitMessageToolBox"
              x:Name="ThisControl">
@@ -21,7 +22,11 @@
                                  Foreground="{DynamicResource Brush.FG1}"
                                  FontFamily="{DynamicResource Fonts.Default}"
                                  FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
-                                 Tag="{Binding Source={x:Static v:StealHotKey.Enter}}"/>
+                                 Tag="{Binding Source={x:Static v:StealHotKey.Enter}}">
+        <Interaction.Behaviors>
+          <tw:TextDocumentWrappingBehavior/>
+        </Interaction.Behaviors>
+      </v:CommitMessageTextEditor>
 
       <Rectangle Grid.Row="1"
                  Height="1"
