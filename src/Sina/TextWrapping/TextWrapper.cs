@@ -1,7 +1,8 @@
 #nullable enable
 
-using System;
 using System.Collections.Generic;
+using System.Linq;
+using SourceGit.Sina.TextWrapping.Implementation;
 
 namespace SourceGit.Sina.TextWrapping;
 
@@ -9,7 +10,11 @@ public static class TextWrapper
 {
     public static IReadOnlyList<Replacement> Wrap(string text, TextWrapperOptions options)
     {
-        return Array.Empty<Replacement>();
+        return text
+            .Tokenize(options)
+            .Wrap(options)
+            .Normalize(text)
+            .ToList();
     }
 }
 

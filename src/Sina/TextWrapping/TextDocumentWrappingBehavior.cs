@@ -22,11 +22,17 @@ public class TextDocumentWrappingBehavior : Behavior<TextEditor>
             document.TextChanged += OnDocumentTextChanged;
 
         if (AssociatedObject?.TextArea is { } textArea)
+        {
             textArea.IndentationStrategy = new NoIndentationStrategy();
+            textArea.TextEntering += OnTextAreaTextEntering;
+        }
     }
 
     protected override void OnDetaching()
     {
+        if (AssociatedObject?.TextArea is { } textArea)
+            textArea.TextEntering -= OnTextAreaTextEntering;
+
         if (AssociatedObject?.Document is { } document)
             document.TextChanged -= OnDocumentTextChanged;
 
@@ -44,6 +50,16 @@ public class TextDocumentWrappingBehavior : Behavior<TextEditor>
         var options = new TextWrapperOptions(tabWidth, newLine, WrapLength: 72);
 
         document.WrapDocument(options);
+    }
+
+    private void OnTextAreaTextEntering(object? sender, TextInputEventArgs e)
+    {
+        if (e.Text is "\n")
+            e.Text = "\n\n";
+        else if (e.Text is "\r\n")
+            e.Text = "\r\n\r\n";
+        else if (e.Text is "\r\r")
+            e.Text = "\r";
     }
 
     private class NoIndentationStrategy : IIndentationStrategy
