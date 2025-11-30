@@ -257,28 +257,40 @@ namespace SourceGit.Models
             return builder.ToString();
         }
 
-        public List<Commit> FocusCommits(List<Commit> commits, bool firstParentOnlyEnabled)
+        public Func<string, bool> FilterCommits(List<Commit> commits)
         {
             if (Mode != FilterMode.Focused)
-                return commits;
+                return _ => true;
 
-            var map = new Dictionary<string, CommitSpec>();
-            var focusedSHAs = new List<string>();
+            var map = CreateMap();
+            CreateChildrenLinks();
+            MarkRemaining(FindFocusedHashes());
 
-            for (var index = commits.Count - 1; index >= 0; index--)
+            commits.RemoveAll(commit => !UseHash(commit.SHA));
+
+            return UseHash;
+
+            IReadOnlyDictionary<string, CommitSpec> CreateMap()
             {
-                var commit = commits[index];
-                var children = new List<string>();
-                var spec = new CommitSpec(commit, index, children);
-                map[commit.SHA] = spec;
+                return commits.ToDictionary(commit => commit.SHA, commit => new CommitSpec(commit, []));
+            }
 
-                foreach (var parentSHA in commit.Parents)
+            void CreateChildrenLinks()
+            {
+                foreach (var commit in commits)
                 {
-                    if (map.TryGetValue(parentSHA, out var parentSpec))
-                        parentSpec.Children.Add(commit.SHA);
+                    foreach (var parentHash in commit.Parents)
+                    {
+                        if (map.TryGetValue(parentHash, out var parentSpec))
+                            parentSpec.Children.Add(commit.SHA);
+                    }
                 }
+            }
 
-                focusedSHAs.AddRange(
+            IEnumerable<string> FindFocusedHashes()
+            {
+                return
+                    from commit in commits
                     from filter in Filters
                     from decorator in commit.Decorators
                     where
@@ -293,50 +305,72 @@ namespace SourceGit.Models
                         (filter.Type, decorator.Type)
                         is (FilterType.Tag, DecoratorType.Tag) &&
                         filter.Pattern == decorator.Name
-                    select commit.SHA);
+                    select commit.SHA;
             }
 
-            foreach (var focused in focusedSHAs)
+            void MarkRemaining(IEnumerable<string> focusedHashes)
             {
-                MarkParents(focused);
-                MarkChildren(focused);
+                foreach (var focused in focusedHashes)
+                {
+                    MarkParents(focused);
+                    MarkChildren(focused);
+                }
+
+                MarkFirstParents();
             }
 
-            return map.Values
-                .Where(spec => spec.Mark != Mark.None)
-                .OrderBy(spec => spec.Index)
-                .Select(spec => spec.Commit)
-                .ToList();
-
-            void MarkParents(string sha)
+            void MarkParents(string hash)
             {
-                if (!map.TryGetValue(sha, out var spec))
+                if (!map.TryGetValue(hash, out var spec))
                     return;
                 if ((spec.Mark & Mark.Parent) != 0)
                     return;
 
                 spec.Mark |= Mark.Parent;
 
-                var parents = firstParentOnlyEnabled ? spec.Commit.Parents.Take(1) : spec.Commit.Parents;
+                var parents = spec.Commit.Parents;
                 foreach (var parent in parents)
                     MarkParents(parent);
             }
 
-            void MarkChildren(string sha)
+            void MarkChildren(string hash)
             {
-                if (!map.TryGetValue(sha, out var spec))
+                if (!map.TryGetValue(hash, out var spec))
                     return;
                 if ((spec.Mark & Mark.Child) != 0)
                     return;
 
                 spec.Mark |= Mark.Child;
 
-                foreach (var parent in spec.Children)
-                    MarkChildren(parent);
+                foreach (var child in spec.Children)
+                    MarkChildren(child);
+            }
+
+            void MarkFirstParents()
+            {
+                foreach (var commit in commits)
+                {
+                    if (!map.TryGetValue(commit.SHA, out var commitSpec))
+                        continue;
+
+                    if (commitSpec.Mark == Mark.None)
+                        continue;
+
+                    if (commitSpec.Commit.Parents is not [var firstParentSha, ..])
+                        continue;
+
+                    if (map.TryGetValue(firstParentSha, out var firstParentSpec))
+                        firstParentSpec.Mark |= Mark.Parent;
+                }
+            }
+
+            bool UseHash(string hash)
+            {
+                return map.TryGetValue(hash, out var spec) && spec.Mark != Mark.None;
             }
         }
 
-        private record CommitSpec(Commit Commit, int Index, List<string> Children)
+        private record CommitSpec(Commit Commit, List<string> Children)
         {
             public Mark Mark { get; set; } = Mark.None;
         }
