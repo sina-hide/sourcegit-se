@@ -12,6 +12,7 @@ namespace SourceGit.Converters
                 {
                     Models.FilterMode.Included => Brushes.Green,
                     Models.FilterMode.Excluded => Brushes.Red,
+                    Models.FilterMode.Focused => Brushes.DodgerBlue,
                     _ => Brushes.Transparent,
                 };
             });

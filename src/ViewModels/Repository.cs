@@ -1196,7 +1196,9 @@ namespace SourceGit.ViewModels
                     builder.Append(filters);
 
                 var commits = await new Commands.QueryCommits(FullPath, builder.ToString()).GetResultAsync().ConfigureAwait(false);
-                var graph = Models.CommitGraph.Parse(commits, _settings.HistoryShowFlags.HasFlag(Models.HistoryShowFlags.FirstParentOnly));
+                var useHash = HistoryFilterCollection.FilterCommits(commits);
+                var firstParentOnlyEnabled = _settings.HistoryShowFlags.HasFlag(Models.HistoryShowFlags.FirstParentOnly);
+                var graph = Models.CommitGraph.Parse(commits, useHash, firstParentOnlyEnabled);
 
                 Dispatcher.UIThread.Invoke(() =>
                 {

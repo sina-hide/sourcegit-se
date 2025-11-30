@@ -116,8 +116,19 @@ namespace SourceGit.Views
                 ev.Handled = true;
             };
 
+            var focus = new MenuItem();
+            focus.Icon = App.CreateMenuIcon("Icons.Eye");
+            focus.Header = "Focus in commit graph";
+            focus.IsEnabled = current != Models.FilterMode.Focused;
+            focus.Click += (_, ev) =>
+            {
+                repo.SetTagFilterMode(tag, Models.FilterMode.Focused);
+                ev.Handled = true;
+            };
+
             menu.Items.Add(include);
             menu.Items.Add(exclude);
+            menu.Items.Add(focus);
         }
 
         private void FillContextMenuForBranch(ContextMenu menu, ViewModels.Repository repo, ViewModels.BranchTreeNode node, Models.FilterMode current)
@@ -161,8 +172,19 @@ namespace SourceGit.Views
                 ev.Handled = true;
             };
 
+            var focus = new MenuItem();
+            focus.Icon = App.CreateMenuIcon("Icons.Eye");
+            focus.Header = "Focus in commit graph";
+            focus.IsEnabled = current != Models.FilterMode.Focused;
+            focus.Click += (_, ev) =>
+            {
+                repo.SetBranchFilterMode(node, Models.FilterMode.Focused, false, true);
+                ev.Handled = true;
+            };
+
             menu.Items.Add(include);
             menu.Items.Add(exclude);
+            menu.Items.Add(focus);
         }
     }
 }
