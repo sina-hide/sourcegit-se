@@ -16,6 +16,12 @@ namespace SourceGit.ViewModels
             set => SetFilterMode(value ? Models.FilterMode.Excluded : Models.FilterMode.None);
         }
 
+        public bool IsFocused
+        {
+            get => _mode == Models.FilterMode.Focused;
+            set => SetFilterMode(value ? Models.FilterMode.Focused : Models.FilterMode.None);
+        }
+
         public FilterModeInGraph(Repository repo, object target)
         {
             _repo = repo;
@@ -40,6 +46,7 @@ namespace SourceGit.ViewModels
 
                 OnPropertyChanged(nameof(IsFiltered));
                 OnPropertyChanged(nameof(IsExcluded));
+                OnPropertyChanged(nameof(IsFocused));
             }
         }
 
