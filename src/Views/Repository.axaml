@@ -802,6 +802,12 @@
                 Data="{StaticResource Icons.EyeClose}"
                 Fill="{DynamicResource Brush.FG2}"
                 IsVisible="{Binding HistoryFilterMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:FilterMode.Excluded}}"/>
+          <Path Grid.Column="0"
+                Margin="8,0,0,0"
+                Width="12" Height="12"
+                Data="{StaticResource Icons.Eye}"
+                Fill="{DynamicResource Brush.FG2}"
+                IsVisible="{Binding HistoryFilterMode, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:FilterMode.Focused}}"/>
 
           <ItemsControl Grid.Column="1" Margin="8,4" ItemsSource="{Binding HistoryFilterCollection.Filters}">
             <ItemsControl.ItemsPanel>

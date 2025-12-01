@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Avalonia.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,6 +21,7 @@ namespace SourceGit.Models
         None = 0,
         Included,
         Excluded,
+        Focused,
     }
 
     public class HistoryFilter : ObservableObject
@@ -254,5 +256,126 @@ namespace SourceGit.Models
 
             return builder.ToString();
         }
+
+        public Func<string, bool> FilterCommits(List<Commit> commits)
+        {
+            if (Mode != FilterMode.Focused)
+                return _ => true;
+
+            var map = CreateMap();
+            CreateChildrenLinks();
+            MarkRemaining(FindFocusedHashes());
+
+            commits.RemoveAll(commit => !UseHash(commit.SHA));
+
+            return UseHash;
+
+            IReadOnlyDictionary<string, CommitSpec> CreateMap()
+            {
+                return commits.ToDictionary(commit => commit.SHA, commit => new CommitSpec(commit, []));
+            }
+
+            void CreateChildrenLinks()
+            {
+                foreach (var commit in commits)
+                {
+                    foreach (var parentHash in commit.Parents)
+                    {
+                        if (map.TryGetValue(parentHash, out var parentSpec))
+                            parentSpec.Children.Add(commit.SHA);
+                    }
+                }
+            }
+
+            IEnumerable<string> FindFocusedHashes()
+            {
+                return
+                    from commit in commits
+                    from filter in Filters
+                    from decorator in commit.Decorators
+                    where
+                        (filter.Type, decorator.Type)
+                        is (FilterType.LocalBranch, DecoratorType.LocalBranchHead or DecoratorType.CurrentBranchHead) &&
+                        filter.Pattern == $"refs/heads/{decorator.Name}"
+                        ||
+                        (filter.Type, decorator.Type)
+                        is (FilterType.RemoteBranch, DecoratorType.RemoteBranchHead) &&
+                        filter.Pattern == $"refs/remotes/{decorator.Name}"
+                        ||
+                        (filter.Type, decorator.Type)
+                        is (FilterType.Tag, DecoratorType.Tag) &&
+                        filter.Pattern == decorator.Name
+                    select commit.SHA;
+            }
+
+            void MarkRemaining(IEnumerable<string> focusedHashes)
+            {
+                foreach (var focused in focusedHashes)
+                {
+                    MarkParents(focused);
+                    MarkChildren(focused);
+                }
+
+                MarkFirstParents();
+            }
+
+            void MarkParents(string hash)
+            {
+                if (!map.TryGetValue(hash, out var spec))
+                    return;
+                if ((spec.Mark & Mark.Parent) != 0)
+                    return;
+
+                spec.Mark |= Mark.Parent;
+
+                var parents = spec.Commit.Parents;
+                foreach (var parent in parents)
+                    MarkParents(parent);
+            }
+
+            void MarkChildren(string hash)
+            {
+                if (!map.TryGetValue(hash, out var spec))
+                    return;
+                if ((spec.Mark & Mark.Child) != 0)
+                    return;
+
+                spec.Mark |= Mark.Child;
+
+                foreach (var child in spec.Children)
+                    MarkChildren(child);
+            }
+
+            void MarkFirstParents()
+            {
+                foreach (var commit in commits)
+                {
+                    if (!map.TryGetValue(commit.SHA, out var commitSpec))
+                        continue;
+
+                    if (commitSpec.Mark == Mark.None)
+                        continue;
+
+                    if (commitSpec.Commit.Parents is not [var firstParentSha, ..])
+                        continue;
+
+                    if (map.TryGetValue(firstParentSha, out var firstParentSpec))
+                        firstParentSpec.Mark |= Mark.Parent;
+                }
+            }
+
+            bool UseHash(string hash)
+            {
+                return map.TryGetValue(hash, out var spec) && spec.Mark != Mark.None;
+            }
+        }
+
+        private record CommitSpec(Commit Commit, List<string> Children)
+        {
+            public Mark Mark { get; set; } = Mark.None;
+        }
+
+        [Flags]
+        private enum Mark { None = 0, Parent = 1, Child = 2 }
     }
 }

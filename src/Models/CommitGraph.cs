@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Avalonia;
 using Avalonia.Media;
@@ -62,7 +63,7 @@ namespace SourceGit.Models
         public List<Link> Links { get; } = [];
         public List<Dot> Dots { get; } = [];
 
-        public static CommitGraph Parse(List<Commit> commits, bool firstParentOnlyEnabled)
+        public static CommitGraph Parse(List<Commit> commits, Func<string, bool> useHash, bool firstParentOnlyEnabled)
         {
             const double unitWidth = 12;
             const double halfWidth = 6;
@@ -166,6 +167,9 @@ namespace SourceGit.Models
                     for (int j = 1; j < commit.Parents.Count; j++)
                     {
                         var parentHash = commit.Parents[j];
+                        if (!useHash(parentHash))
+                            continue;
+
                         var parent = unsolved.Find(x => x.Next.Equals(parentHash, StringComparison.Ordinal));
                         if (parent != null)
                         {
