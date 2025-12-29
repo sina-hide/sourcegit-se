@@ -56,13 +56,14 @@
 	</Folder>
 
 	<Folder Name="/files/">
-		<File Path=".editconfig"/>
+		<File Path=".editorconfig"/>
 		<File Path=".gitattributes"/>
 		<File Path=".gitignore"/>
 		<File Path=".issuetracker"/>
 		<File Path="global.json"/>
 		<File Path="LICENSE"/>
 		<File Path="README.md"/>
+        <File Path="README-SINA-EDITION.md"/>
 		<File Path="THIRD-PARTY-LICENSES.md"/>
 		<File Path="TRANSLATION.md"/>
 	</Folder>

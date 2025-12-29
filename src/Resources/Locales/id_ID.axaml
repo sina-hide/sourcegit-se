@@ -104,7 +104,6 @@
   <x:String x:Key="Text.Checkout.LocalChanges" xml:space="preserve">Perubahan Lokal:</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges.Discard" xml:space="preserve">Buang</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges.StashAndReapply" xml:space="preserve">Stash &amp; Terapkan Ulang</x:String>
-  <x:String x:Key="Text.Checkout.RecurseSubmodules" xml:space="preserve">Perbarui semua submodule</x:String>
   <x:String x:Key="Text.Checkout.Target" xml:space="preserve">Branch:</x:String>
   <x:String x:Key="Text.Checkout.WarnLostCommits" xml:space="preserve">HEAD saat ini mengandung commit yang tidak terhubung ke branch/tag manapun! Lanjutkan?</x:String>
   <x:String x:Key="Text.Checkout.WithFastForward" xml:space="preserve">Checkout &amp; Fast-Forward</x:String>
@@ -154,6 +153,7 @@
   <x:String x:Key="Text.CommitCM.Reword" xml:space="preserve">Reword</x:String>
   <x:String x:Key="Text.CommitCM.SaveAsPatch" xml:space="preserve">Simpan sebagai Patch...</x:String>
   <x:String x:Key="Text.CommitCM.Squash" xml:space="preserve">Squash ke Parent</x:String>
+  <x:String x:Key="Text.CommitCM.Fixup" xml:space="preserve">Fixup ke Parent</x:String>
   <x:String x:Key="Text.CommitDetail.Changes" xml:space="preserve">PERUBAHAN</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Count" xml:space="preserve">berkas berubah</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Search" xml:space="preserve">Cari Perubahan...</x:String>
@@ -611,7 +611,6 @@
   <x:String x:Key="Text.Pull.LocalChanges" xml:space="preserve">Perubahan Lokal:</x:String>
   <x:String x:Key="Text.Pull.LocalChanges.Discard" xml:space="preserve">Buang</x:String>
   <x:String x:Key="Text.Pull.LocalChanges.StashAndReapply" xml:space="preserve">Stash &amp; Terapkan Ulang</x:String>
-  <x:String x:Key="Text.Pull.RecurseSubmodules" xml:space="preserve">Perbarui semua submodule</x:String>
   <x:String x:Key="Text.Pull.Remote" xml:space="preserve">Remote:</x:String>
   <x:String x:Key="Text.Pull.Title" xml:space="preserve">Pull (Fetch &amp; Merge)</x:String>
   <x:String x:Key="Text.Pull.UseRebase" xml:space="preserve">Gunakan rebase alih-alih merge</x:String>
@@ -761,8 +760,6 @@
   <x:String x:Key="Text.SetUpstream.Upstream" xml:space="preserve">Upstream:</x:String>
   <x:String x:Key="Text.SHALinkCM.CopySHA" xml:space="preserve">Salin SHA</x:String>
   <x:String x:Key="Text.SHALinkCM.NavigateTo" xml:space="preserve">Ke</x:String>
-  <x:String x:Key="Text.Squash" xml:space="preserve">Squash Commit</x:String>
-  <x:String x:Key="Text.Squash.Into" xml:space="preserve">Ke:</x:String>
   <x:String x:Key="Text.SSHKey" xml:space="preserve">Kunci SSH Privat:</x:String>
   <x:String x:Key="Text.SSHKey.Placeholder" xml:space="preserve">Jalur penyimpanan kunci SSH privat</x:String>
   <x:String x:Key="Text.Start" xml:space="preserve">MULAI</x:String>

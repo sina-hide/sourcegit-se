@@ -89,12 +89,6 @@ This software creates a folder `$"{System.Environment.SpecialFolder.ApplicationD
 For **Windows** users:
 
 * **MSYS Git is NOT supported**. Please use official [Git for Windows](https://git-scm.com/download/win) instead.
-* You can install the latest stable from `winget` with follow commands:
-  ```shell
-  winget install SourceGit
-  ```
-> [!NOTE]
-> `winget` will install this software as a commandline tool. You need run `SourceGit` from console or `Win+R` at the first time. Then you can add it to the taskbar.
 * You can install the latest stable by `scoop` with follow commands:
   ```shell
   scoop bucket add extras
@@ -110,15 +104,17 @@ For **Windows** users:
 
 For **macOS** users:
 
-* Thanks [@ybeapps](https://github.com/ybeapps) for making `SourceGit` available on `Homebrew`. You can simply install it with following command:
+* Thanks [@ybeapps](https://github.com/ybeapps) for making `SourceGit` available on `Homebrew`:
   ```shell
-  brew tap ybeapps/homebrew-sourcegit
-  brew install --cask --no-quarantine sourcegit
+  brew install --cask sourcegit
   ```
 * If you want to install `SourceGit.app` from GitHub Release manually, you need run following command to make sure it works:
   ```shell
   sudo xattr -cr /Applications/SourceGit.app
   ```
+> [!NOTE]
+> macOS packages in the `Release` page of this project are all unsigned. If you are worried about potential security issues with the above command, you can download the signed package from the [distribution repository](https://github.com/ybeapps/homebrew-sourcegit/releases) provided by [@ybeapps](https://github.com/ybeapps) (there is no need to execute the above command while installing `SourceGit`).
+
 * Make sure [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager/releases) is installed on your mac.
 * You can run `echo $PATH > ~/Library/Application\ Support/SourceGit/PATH` to generate a custom PATH env file to introduce `PATH` env to SourceGit.
 

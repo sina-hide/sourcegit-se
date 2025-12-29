@@ -21,7 +21,7 @@ namespace SourceGit.Commands
 
         public Diff(string repo, Models.DiffOption opt, int unified, bool ignoreWhitespace)
         {
-            _result.TextDiff = new Models.TextDiff() { Option = opt };
+            _result.TextDiff = new Models.TextDiff();
 
             WorkingDirectory = repo;
             Context = repo;
@@ -46,8 +46,21 @@ namespace SourceGit.Commands
                 proc.StartInfo = CreateGitStartInfo(true);
                 proc.Start();
 
-                while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
+                var text = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+
+                var start = 0;
+                var end = text.IndexOf('\n', start);
+                while (end > 0)
+                {
+                    var line = text[start..end];
                     ParseLine(line);
+
+                    start = end + 1;
+                    end = text.IndexOf('\n', start);
+                }
+
+                if (start < text.Length)
+                    ParseLine(text[start..]);
 
                 await proc.WaitForExitAsync().ConfigureAwait(false);
             }
@@ -252,10 +265,10 @@ namespace SourceGit.Commands
                         foreach (var chunk in chunks)
                         {
                             if (chunk.DeletedCount > 0)
-                                left.Highlights.Add(new Models.TextInlineRange(chunk.DeletedStart, chunk.DeletedCount));
+                                left.Highlights.Add(new Models.TextRange(chunk.DeletedStart, chunk.DeletedCount));
 
                             if (chunk.AddedCount > 0)
-                                right.Highlights.Add(new Models.TextInlineRange(chunk.AddedStart, chunk.AddedCount));
+                                right.Highlights.Add(new Models.TextRange(chunk.AddedStart, chunk.AddedCount));
                         }
                     }
                 }

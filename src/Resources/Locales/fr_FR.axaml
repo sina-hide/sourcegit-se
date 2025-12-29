@@ -108,7 +108,6 @@
   <x:String x:Key="Text.Checkout.LocalChanges" xml:space="preserve">Changements locaux :</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges.Discard" xml:space="preserve">Annuler</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges.StashAndReapply" xml:space="preserve">Mettre en stash et réappliquer</x:String>
-  <x:String x:Key="Text.Checkout.RecurseSubmodules" xml:space="preserve">Mettre à jour tous les sous-modules</x:String>
   <x:String x:Key="Text.Checkout.Target" xml:space="preserve">Branche :</x:String>
   <x:String x:Key="Text.Checkout.WarnLostCommits" xml:space="preserve">Votre HEAD actuel contient un ou plusieurs commits non connectés à une branche/tag ! Voulez-vous continuer ?</x:String>
   <x:String x:Key="Text.Checkout.WithFastForward" xml:space="preserve">Récupérer &amp; Fast-Forward</x:String>
@@ -158,7 +157,8 @@
   <x:String x:Key="Text.CommitCM.Revert" xml:space="preserve">Annuler le commit</x:String>
   <x:String x:Key="Text.CommitCM.Reword" xml:space="preserve">Reformuler</x:String>
   <x:String x:Key="Text.CommitCM.SaveAsPatch" xml:space="preserve">Enregistrer en tant que patch...</x:String>
-  <x:String x:Key="Text.CommitCM.Squash" xml:space="preserve">Squash dans le parent</x:String>
+  <x:String x:Key="Text.CommitCM.Squash" xml:space="preserve">Squash dans le Parent</x:String>
+  <x:String x:Key="Text.CommitCM.Fixup" xml:space="preserve">Fixup dans le Parent</x:String>
   <x:String x:Key="Text.CommitDetail.Changes" xml:space="preserve">CHANGEMENTS</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Count" xml:space="preserve">fichier(s) modifié(s)</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Search" xml:space="preserve">Rechercher les changements...</x:String>
@@ -636,7 +636,6 @@
   <x:String x:Key="Text.Pull.LocalChanges" xml:space="preserve">Changements locaux :</x:String>
   <x:String x:Key="Text.Pull.LocalChanges.Discard" xml:space="preserve">Rejeter</x:String>
   <x:String x:Key="Text.Pull.LocalChanges.StashAndReapply" xml:space="preserve">Stash &amp; Réappliquer</x:String>
-  <x:String x:Key="Text.Pull.RecurseSubmodules" xml:space="preserve">Mettre à jour tous les sous-modules</x:String>
   <x:String x:Key="Text.Pull.Remote" xml:space="preserve">Dépôt distant :</x:String>
   <x:String x:Key="Text.Pull.Title" xml:space="preserve">Pull (Fetch &amp; Merge)</x:String>
   <x:String x:Key="Text.Pull.UseRebase" xml:space="preserve">Utiliser rebase au lieu de merge</x:String>
@@ -788,8 +787,6 @@
   <x:String x:Key="Text.SetUpstream.Upstream" xml:space="preserve">En amont:</x:String>
   <x:String x:Key="Text.SHALinkCM.CopySHA" xml:space="preserve">Copier le SHA</x:String>
   <x:String x:Key="Text.SHALinkCM.NavigateTo" xml:space="preserve">Aller à</x:String>
-  <x:String x:Key="Text.Squash" xml:space="preserve">Squash les commits</x:String>
-  <x:String x:Key="Text.Squash.Into" xml:space="preserve">Dans :</x:String>
   <x:String x:Key="Text.SSHKey" xml:space="preserve">Clé privée SSH :</x:String>
   <x:String x:Key="Text.SSHKey.Placeholder" xml:space="preserve">Chemin du magasin de clés privées SSH</x:String>
   <x:String x:Key="Text.Start" xml:space="preserve">START</x:String>
